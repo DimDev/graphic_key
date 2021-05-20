@@ -23,6 +23,7 @@ class LinePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    print('Painting line');
     if (pointsLine.selectedPoints.isEmpty) {
       return;
     }
@@ -41,6 +42,7 @@ class LinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) {
+    print('shouldRepaint Painting line');
     return true;
   }
 }
