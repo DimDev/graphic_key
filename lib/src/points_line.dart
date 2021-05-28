@@ -14,13 +14,9 @@ class PointsLine {
   Offset? temporaryLineEnd;
   final double focusRadius;
 
-  final PointSelectedCallback? pointSelectedCallback;
+  final List<PointSelectedCallback> selectedPointCallbacks = [];
 
-  PointsLine({
-    required this.allPoints,
-    required this.focusRadius,
-    this.pointSelectedCallback,
-  });
+  PointsLine({required this.allPoints, required this.focusRadius});
 
   List<int> get selectedPointsNums {
     List<int> selectedPointsNums = [];
@@ -35,6 +31,9 @@ class PointsLine {
   }
 
   void resetSelection() {
+    _selectedPoints.forEach((Point point) {
+      point.isSelected = false;
+    });
     _selectedPoints.clear();
   }
 
@@ -44,8 +43,9 @@ class PointsLine {
     if (nearestPoint != null) {
       // if this nearest point is not added as last
       var isPointAdded = _addPointToCurrentLine(nearestPoint);
-      if (pointSelectedCallback != null && isPointAdded) {
-        pointSelectedCallback!(nearestPoint.num);
+      if (isPointAdded) {
+        nearestPoint.isSelected = true;
+        selectedPointCallbacks.forEach((PointSelectedCallback callback) => callback(nearestPoint.num));
       }
       temporaryLineEnd = null;
     } else {

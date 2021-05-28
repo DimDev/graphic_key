@@ -3,7 +3,7 @@ import 'dart:ui' show Offset;
 class Point {
   final int num;
   late Offset offset;
-  bool isActive = false;
+  bool isSelected = false;
 
   Point({
     required this.num,

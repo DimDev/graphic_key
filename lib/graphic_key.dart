@@ -1,15 +1,13 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+import 'package:graphic_key/src/line_painter.dart';
 import 'package:graphic_key/src/point.dart';
+import 'package:graphic_key/src/points_line.dart';
+import 'package:graphic_key/src/points_painter.dart';
+import 'package:graphic_key/src/typedef.dart';
 
-import './src/points_painter.dart';
-import './src/line_painter.dart';
-import './src/points_line.dart';
-import './src/typedef.dart';
-
-class GraphicKey extends StatefulWidget {
+class GraphicKey extends StatelessWidget {
   final Color pointColor;
   final double pointStrokeWidth;
 
@@ -51,116 +49,100 @@ class GraphicKey extends StatefulWidget {
       Key? key})
       : super(key: key);
 
-  @override
-  _GraphicKeyState createState() => _GraphicKeyState();
-}
-
-class _GraphicKeyState extends State<GraphicKey> {
-  bool isInitialized = false;
-  late final double _minSize;
-
-  late final List<Point> _points;
-  late final PointsPainter _pointsPainter;
-  late final CustomPaint _pointsCanvas;
-
-
-  late final PointsLine _pointsLine;
-  late final LinePainter _pointsLinePainter;
-  late CustomPaint _pointsLineCanvas;
+  ValueNotifier<Offset> pointLineOffsetNotifier = ValueNotifier<Offset>(Offset(0.0, 0.0));
+  ValueNotifier<int> pointSelectedNotifier = ValueNotifier<int>(0);
 
   @override
   Widget build(BuildContext context) {
-    if (!isInitialized) {
-      _minSize = min<double>(MediaQuery.of(context).size.width, MediaQuery.of(context).size.height);
-      final canvasSize = Size(_minSize, _minSize);
-      _points = generatePoints(canvasSize);
+    final minSize = min<double>(MediaQuery.of(context).size.width, MediaQuery.of(context).size.height);
+    final canvasSize = Size(minSize, minSize);
+    final points = _generatePoints(canvasSize);
 
-      _pointsPainter = PointsPainter(
-        points: _points,
-        pointColor: widget.pointColor,
-        pointStrokeWidth: widget.pointStrokeWidth,
-        selectedPointColor: widget.selectedPointColor,
-        selectedPointStrokeWidth: widget.selectedPointStrokeWidth,
-        pointCircleRadius: widget.pointCircleRadius,
-        pointCircleStrokeWidth: widget.pointCircleStrokeWidth,
-        pointCircleColor: widget.pointCircleColor,
-        selectedPointCircleRadius: widget.selectedPointCircleRadius,
-        selectedPointCircleStrokeWidth: widget.selectedPointCircleStrokeWidth,
-        selectedPointCircleColor: widget.selectedPointCircleColor,
-      );
-
-      _pointsCanvas = CustomPaint(
-        painter: _pointsPainter,
-        size: canvasSize,
-      );
-
-      _pointsLine = PointsLine(
-        allPoints: _points,
-        focusRadius: widget.pointCircleRadius,
-      );
-      _pointsLinePainter = LinePainter(
-        pointsLine: _pointsLine,
-        lineStrokeWidth: widget.lineStrokeWidth,
-        lineColor: widget.lineColor,
-      );
-      isInitialized = true;
-    }
-    _pointsLineCanvas = CustomPaint(
-      painter: _pointsLinePainter,
+    final pointsPainter = PointsPainter(
+      points: points,
+      pointColor: pointColor,
+      pointStrokeWidth: pointStrokeWidth,
+      selectedPointColor: selectedPointColor,
+      selectedPointStrokeWidth: selectedPointStrokeWidth,
+      pointCircleRadius: pointCircleRadius,
+      pointCircleStrokeWidth: pointCircleStrokeWidth,
+      pointCircleColor: pointCircleColor,
+      selectedPointCircleRadius: selectedPointCircleRadius,
+      selectedPointCircleStrokeWidth: selectedPointCircleStrokeWidth,
+      selectedPointCircleColor: selectedPointCircleColor,
+      repaint: pointSelectedNotifier,
     );
 
-    return Stack(
+    final pointsCanvas = CustomPaint(
+      painter: pointsPainter,
+      size: canvasSize,
+    );
+
+    final pointsLine = PointsLine(
+      allPoints: points,
+      focusRadius: pointCircleRadius,
+    );
+
+    if (pointSelectedCallback != null) {
+      pointsLine.selectedPointCallbacks.add(pointSelectedCallback!);
+    }
+
+    final pointsLinePainter = LinePainter(
+      pointsLine: pointsLine,
+      lineStrokeWidth: lineStrokeWidth,
+      lineColor: lineColor,
+      repaint: pointLineOffsetNotifier,
+    );
+    final pointsLineCanvas = CustomPaint(
+      painter: pointsLinePainter,
+    );
+
+    final pointsContainer = Container(
+      width: minSize,
+      height: minSize,
+      decoration: BoxDecoration(color: backgroundColor),
+      child: pointsCanvas,
+    );
+    final gestureDetector = GestureDetector(
+      onPanStart: (DragStartDetails details) {
+        pointsLine.resetSelection();
+        pointsLine.processCurrentOffset(details.localPosition);
+        pointLineOffsetNotifier.value = details.localPosition;
+      },
+      onPanUpdate: (DragUpdateDetails details) {
+        pointsLine.processCurrentOffset(details.localPosition);
+        pointLineOffsetNotifier.value = details.localPosition;
+      },
+      onPanCancel: () {
+        pointsLine.finish();
+        pointLineOffsetNotifier.value = const Offset(0.0, 0.0);
+        keyEnteredCallback(pointsLine.selectedPointsNums);
+      },
+      onPanEnd: (DragEndDetails details) {
+        pointLineOffsetNotifier.value = const Offset(0.0, 0.0);
+        keyEnteredCallback(pointsLine.selectedPointsNums);
+        pointsLine.finish();
+      },
+      child: Container(
+        width: minSize,
+        height: minSize,
+        child: pointsLineCanvas,
+      ),
+    );
+
+    return Column(
       children: [
-        Container(
-          width: _minSize,
-          height: _minSize,
-          decoration: BoxDecoration(color: widget.backgroundColor),
-          child: _pointsCanvas,
+        Stack(
+          children: [
+            pointsContainer,
+            gestureDetector,
+          ],
         ),
-        GestureDetector(
-          onPanStart: (DragStartDetails details) {
-            //print("onPanStart: ${details.localPosition.dx}:${details.localPosition.dy}");
-            setState(() {
-              /*_pointsLine = PointsLine(
-                _pointsPainter.points,
-                widget.lineStrokeWidth,
-                widget.lineColor,
-                widget.pointSelectedCallback,
-              );*/
-              _pointsLine.resetSelection();
-              _pointsLine.processCurrentOffset(details.localPosition);
-            });
-          },
-          onPanUpdate: (DragUpdateDetails details) {
-            //print("onPanUpdate: ${details.localPosition.dx}:${details.localPosition.dy}");
-            setState(() {
-              _pointsLine.processCurrentOffset(details.localPosition);
-            });
-          },
-          /*onPanCancel: () {
-            setState(() {
-              _pointsLine.finish();
-            });
-            widget._keyEntered(_pointsLine);
-          },*/
-          onPanEnd: (DragEndDetails details) {
-            setState(() {
-              _pointsLine.finish();
-            });
-            widget.keyEnteredCallback(_pointsLine.selectedPointsNums);
-          },
-          child: Container(
-            width: _minSize,
-            height: _minSize,
-            //decoration: BoxDecoration(color: Colors.blueGrey),
-            child: _pointsLineCanvas,
-          ),
-        )
       ],
     );
   }
 
-  List<Point> generatePoints(Size size) {
+  List<Point> _generatePoints(Size size) {
     var points = <Point>[];
     var interval = size.width / 4;
     int column = 1;
@@ -168,8 +150,8 @@ class _GraphicKeyState extends State<GraphicKey> {
       final line = (pointNum >= 7)
           ? 3
           : (pointNum >= 4)
-          ? 2
-          : 1;
+              ? 2
+              : 1;
 
       points.add(Point(
         num: pointNum,

@@ -7,6 +7,7 @@ class LinePainter extends CustomPainter {
   PointsLine pointsLine;
   final double lineStrokeWidth;
   final Color lineColor;
+  Listenable ?repaint;
 
   late final Paint paintBrush;
 
@@ -14,7 +15,8 @@ class LinePainter extends CustomPainter {
     required this.pointsLine,
     this.lineStrokeWidth = 5,
     this.lineColor = Colors.red,
-  }) {
+    this.repaint,
+  }): super(repaint: repaint) {
     paintBrush = Paint()
       ..color = lineColor
       ..strokeWidth = lineStrokeWidth
@@ -23,7 +25,6 @@ class LinePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    print('Painting line');
     if (pointsLine.selectedPoints.isEmpty) {
       return;
     }
@@ -42,7 +43,6 @@ class LinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) {
-    print('shouldRepaint Painting line');
     return true;
   }
 }

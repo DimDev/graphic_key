@@ -25,6 +25,8 @@ class PointsPainter extends CustomPainter {
   late final Paint _pointCirclePaint;
   late final Paint _selectedPointCirclePaint;
 
+  Listenable? repaint;
+
   PointsPainter({
     required this.points,
     required this.pointColor,
@@ -37,7 +39,9 @@ class PointsPainter extends CustomPainter {
     required this.selectedPointCircleRadius,
     required this.selectedPointCircleStrokeWidth,
     required this.selectedPointCircleColor,
-  }) {
+    this.repaint,
+  }) : super(repaint: repaint) {
+    print('Rebuilding canvas');
     _pointPaint = Paint()
       ..color = pointColor
       ..strokeWidth = pointStrokeWidth
@@ -59,50 +63,44 @@ class PointsPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
   }
 
-  /*List<Point> get points {
-    if (_points.isNotEmpty) {
-      return _points;
-    }
-    var interval = _size.width / 4;
-    int column = 1;
-    for (var pointNum = 1; pointNum <= 9; pointNum++) {
-      final line = (pointNum >= 7)
-          ? 3
-          : (pointNum >= 4)
-              ? 2
-              : 1;
-      _points.add(Point(
-        num: pointNum,
-        x: column * interval,
-        y: line * interval,
-        focusRadius: pointCircleRadius,
-      ));
-      column = (column == 3) ? 1 : column + 1;
-    }
-    return _points;
-  }*/
-
   @override
   void paint(Canvas canvas, Size size) {
-    final pointMode = ui.PointMode.points;
-    final paint = Paint()
-      ..color = pointColor
-      ..strokeWidth = pointStrokeWidth
-      ..strokeCap = StrokeCap.round;
-    canvas.drawPoints(pointMode, points.map((Point point) => point.offset).toList(), paint);
+    print('Draw points');
+    List<Offset> notSelectedPoints =
+        points.where((Point point) => !point.isSelected).map((Point point) => point.offset).toList();
+    List<Offset> selectedPoints =
+        points.where((Point point) => point.isSelected).map((Point point) => point.offset).toList();
 
-    var circlePaint = Paint();
-    circlePaint.strokeWidth = pointCircleStrokeWidth;
-    circlePaint.color = pointCircleColor;
-    circlePaint.style = PaintingStyle.stroke;
-    points.forEach((Point point) {
-      canvas.drawCircle(point.offset, pointCircleRadius, circlePaint);
+    canvas.drawPoints(
+      ui.PointMode.points,
+      notSelectedPoints,
+      _pointPaint,
+    );
+    canvas.drawPoints(
+      ui.PointMode.points,
+      selectedPoints,
+      _selectedPointPaint,
+    );
+
+    selectedPoints.forEach((Offset offset) {
+      canvas.drawCircle(
+        offset,
+        pointCircleRadius,
+        _selectedPointCirclePaint,
+      );
+    });
+
+    notSelectedPoints.forEach((Offset offset) {
+      canvas.drawCircle(
+        offset,
+        pointCircleRadius,
+        _pointCirclePaint,
+      );
     });
   }
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) {
-    // TODO: investigate this method
     return true;
   }
 }
