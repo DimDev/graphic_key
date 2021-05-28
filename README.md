@@ -2,7 +2,7 @@
 
 Allows users to draw graphic key to enter the secured area of the app.
 
-![Graphic key example](docs/img/graphic_key_example_1.png)
+![Graphic key example](doc/img/graphic_key_example_1.png)
 
 ## Install
 Depend on it
